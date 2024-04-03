@@ -9,10 +9,8 @@ export const loginInputCheck = (req , res , next) => {
     const data = req.body;
     loginInputSchema.parseAsync(data)
         .then(() => {
-            res.status(200).send({
-                Message: "Login Input Check Successful ..."
-            });
-            return next();
+            console.log("Input Data Valid Hai ...")
+            next();
         })
         .catch((error) => {
             res.status(500).send({

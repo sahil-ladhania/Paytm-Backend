@@ -1,4 +1,5 @@
 import express from 'express';
+import cookieparser from 'cookie-parser'
 import authRoutes from '../BACKEND/Routes/authRoutes.js';
 import transactionsRoutes from '../BACKEND/Routes/transactionsRoutes.js';
 import searchUserRoutes from '../BACKEND/Routes/searchUserRoutes.js';
@@ -9,6 +10,7 @@ const port = 81;
 connectDB();
 
 app.use(express.json());
+app.use(cookieparser());
 
 app.get('/', (req, res) => {
     res.send('Welcome to Paytm Wallet App...')

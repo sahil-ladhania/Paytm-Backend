@@ -6,10 +6,8 @@ export const searchInputCheck = (req , res , next) => {
     const data = req.body;
     searchInputSchema.parseAsync(data)
         .then(() => {
-            res.status(200).send({
-                Message: "Search Input Check Successful ..."
-            });
-            return next();
+            console.log("Search Input Check Successful ...")
+            next();
         })
         .catch((error) => {
             res.status(500).send({

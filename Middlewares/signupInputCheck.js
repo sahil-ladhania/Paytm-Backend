@@ -11,10 +11,8 @@ export const signupInputCheck = (req , res , next) => {
     const data = req.body;
     signupInputSchema.parseAsync(data)
         .then(() => {
-            res.status(200).send({
-                Message: "Signup Input Check Successful ..."
-            });
-            return next();
+            console.log("Input Data Valid Hai ...")
+            next();
         })
         .catch((error) => {
             res.status(500).send({
