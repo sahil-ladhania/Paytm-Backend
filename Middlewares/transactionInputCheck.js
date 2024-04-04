@@ -1,8 +1,8 @@
 import z from 'zod';
 
 const transactionInputSchema = z.object({
-    userId : z.string(),
-    balanceAmount : z.number().positive()
+    payerId : z.string(),
+    amountToSend : z.number().positive()
 })
 
 export const transactionInputCheck = (req , res , next) => {
