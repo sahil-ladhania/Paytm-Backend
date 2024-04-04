@@ -1,4 +1,5 @@
 import { Account } from "../Models/accountModel.js";
+import { User } from '../Models/userModel.js';
 
 export const addMoney = (req , res) => {
     // Getting the Data from the Body Object
@@ -47,7 +48,70 @@ export const sendMoney = (req , res) => {
     }
     else{
         // Check if the Payer is Valid User or Not
-        // Check if the Payer has more than Rs.0 in his Account
+        User.find({_id : payerId})
+            .then((user) => {
+                console.log(user);
+                // Check if the Payer has more than Rs.0 in his Account
+                Account.findOne({userId : payerId})
+                    .then((user) => {
+                        const accountBalance = user.balanceAmount;
+                        console.log(accountBalance);
+                        if(accountBalance < 0){
+                            console.log("Sale Bikhari !!!")
+                        }
+                        else{
+                            // Check if the Payer has more than or equal to what he wants to send to Payee
+                            if(accountBalance >= amountToSend){
+                                // Update the Payers Account By Deducting the Amount
+                                const payerFilter = {userId : payerId};
+                                console.log(payerFilter);
+                                const payerUpdate = {$inc: {balanceAmount : -amountToSend}};
+                                console.log(payerUpdate);
+                                Account.updateOne(payerFilter , payerUpdate)
+                                    .then((result) => {
+                                        console.log(result);
+                                        // Update the Payees Account By Adding the Amount
+                                        const payeeFilter = {userId : payeeId};
+                                        console.log(payeeFilter);
+                                        const payeeUpdate = {$inc : {balanceAmount : amountToSend}};
+                                        console.log(payeeUpdate);
+                                        return Account.updateOne(payeeFilter , payeeUpdate)
+                                            .then((result) => {
+                                                console.log(result);
+                                                res.status(201).send({
+                                                    Message : "Transaction Successfull ..."
+                                                })
+                                            })
+                                            .catch((error) => {
+                                                res.status(500).send({
+                                                    Error : `Error Adding The Amount To Payee's Account Balance : ${error}`
+                                                });                                
+                                            })
+                                    })
+                                    .catch((error) => {
+                                        res.status(500).send({
+                                            Error : `Error Deducting The Amount From Payer's Account Balance : ${error}`
+                                        });                                
+                                    })
+                            }
+                            else{
+                                res.status(500).send({
+                                    Error : `Unavailable Balance !!!`
+                                })
+                            }
+                        }
+                    })
+                    .catch((error) => {
+                        res.status(500).send({
+                            Error : `Error Finding the Payer Account Balance : ${error}`
+                        })
+                    })
+            })
+            .catch((error) => {
+                res.status(500).send({
+                    Error : `Error Finding the Payer : ${error}`
+                })
+            })
     }
 }
 
@@ -56,4 +120,29 @@ export const checkBalance = (req , res) => {
     const userdId = req.params.userId;
     console.log(userdId);
     // Check If the User Exist or Not
+    User.findOne({_id : userdId})
+        .then((user) => {
+            console.log(user);
+            // Get the Users Account Balance
+            Account.findOne({userId : userdId})
+                .then((user) => {
+                    console.log(user);
+                    const userBalance = user.balanceAmount;
+                    console.log(userBalance);
+                    res.status(200).send({
+                        Message : "User's Account Balance Retrieved Successfully ...",
+                        User_Account_Balance : userBalance
+                    })
+                })
+                .catch((error) => {
+                    res.status(500).send({
+                        Error : `No User Found : ${error}`
+                    })
+                })
+        })
+        .catch((error) => {
+            res.status(500).send({
+                Error : `No User Found : ${error}`
+            })
+        })
 }
