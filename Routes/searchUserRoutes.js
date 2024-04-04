@@ -5,5 +5,6 @@ import { isUserAuthorized } from '../Middlewares/authorizeUser.js';
 const router = express.Router();
 
 router.get('/api/v1/search-user' , searchInputCheck , isUserAuthorized , searchUser);
+// router.get('/api/v1/search-user' , searchInputCheck , searchUser);
 
 export default router;

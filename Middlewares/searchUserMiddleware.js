@@ -1,9 +1,9 @@
 import z from 'zod';
 
-const searchInputSchema = z.string().min(3).max(10);
+const searchInputSchema = z.string().min(3).max(20);
 
 export const searchInputCheck = (req , res , next) => {
-    const data = req.body;
+    const data = req.body.name;
     searchInputSchema.parseAsync(data)
         .then(() => {
             console.log("Search Input Check Successful ...")
