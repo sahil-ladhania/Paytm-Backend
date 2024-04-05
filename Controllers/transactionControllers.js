@@ -1,5 +1,6 @@
 import { Account } from "../Models/accountModel.js";
 import { User } from '../Models/userModel.js';
+import { mongoose } from 'mongoose';
 
 export const addMoney = (req , res) => {
     // Getting the Data from the Body Object
@@ -34,85 +35,127 @@ export const addMoney = (req , res) => {
 }
 
 export const sendMoney = (req , res) => {
-    // Getting the Data from the Params Object
-    const payeeId = req.params.payeeId;
-    console.log(`payeeId : ${payeeId}`);
-    // Getting the Data from the Body Object
-    const payerId = req.body.payerId;
-    console.log(`payerId : ${payerId}`);
-    const amountToSend = req.body.amountToSend; 
-    console.log(`Amount To Send : ${amountToSend}`);
-    // Checking If user has Filled all the Feilds
-    if(!payerId || !amountToSend){
-        console.log("Pura Bhar Form !!!");
-    }
-    else{
-        // Check if the Payer is Valid User or Not
-        User.find({_id : payerId})
-            .then((user) => {
-                console.log(user);
-                // Check if the Payer has more than Rs.0 in his Account
-                Account.findOne({userId : payerId})
+    // Start the Mongoose Session
+    mongoose.startSession()
+        .then((session) => {
+            console.log(session);
+            // Starting the Transaction
+            session.startTransaction();
+            // Getting the Data from the Params Object
+            const payeeId = req.params.payeeId;
+            console.log(`payeeId : ${payeeId}`);
+            // Getting the Data from the Body Object
+            const payerId = req.body.payerId;
+            console.log(`payerId : ${payerId}`);
+            const amountToSend = req.body.amountToSend; 
+            console.log(`Amount To Send : ${amountToSend}`);
+            // Checking If user has Filled all the Feilds
+            if(!payerId || !amountToSend){
+                console.log("Pura Bhar Form !!!");
+                session.abortTransaction();
+                session.endSession();
+            }
+            else{
+                // Check if the Payer is Valid User or Not
+                User.find({_id : payerId})
                     .then((user) => {
-                        const accountBalance = user.balanceAmount;
-                        console.log(accountBalance);
-                        if(accountBalance < 0){
-                            console.log("Sale Bikhari !!!")
+                        console.log(user);
+                        if(!user){
+                            console.log("Payer Valid User Nahi Hai !!!");
+                            session.abortTransaction();
+                            session.endSession();
                         }
                         else{
-                            // Check if the Payer has more than or equal to what he wants to send to Payee
-                            if(accountBalance >= amountToSend){
-                                // Update the Payers Account By Deducting the Amount
-                                const payerFilter = {userId : payerId};
-                                console.log(payerFilter);
-                                const payerUpdate = {$inc: {balanceAmount : -amountToSend}};
-                                console.log(payerUpdate);
-                                Account.updateOne(payerFilter , payerUpdate)
-                                    .then((result) => {
-                                        console.log(result);
-                                        // Update the Payees Account By Adding the Amount
-                                        const payeeFilter = {userId : payeeId};
-                                        console.log(payeeFilter);
-                                        const payeeUpdate = {$inc : {balanceAmount : amountToSend}};
-                                        console.log(payeeUpdate);
-                                        return Account.updateOne(payeeFilter , payeeUpdate)
-                                            .then((result) => {
-                                                console.log(result);
-                                                res.status(201).send({
-                                                    Message : "Transaction Successfull ..."
-                                                })
-                                            })
-                                            .catch((error) => {
+                            // Check If the Payer is also a User
+                            Account.findOne({userId : payerId})
+                                .then((user) => {
+                                    if(!user){
+                                        console.log("User Not Found !!!");
+                                        session.abortTransaction();
+                                        session.endSession();
+                                    }
+                                    else{
+                                        const accountBalance = user.balanceAmount;
+                                        console.log(accountBalance);
+                                        // Check if the Payer has more than Rs.0 in his Account
+                                        if(accountBalance < 0){
+                                            console.log("Sale Bikhari !!!")
+                                            session.abortTransaction();
+                                            session.endSession();
+                                        }
+                                        else{
+                                            // Check if the Payer has more than or equal to what he wants to send to Payee
+                                            if(accountBalance >= amountToSend){
+                                                // Update the Payers Account By Deducting the Amount
+                                                const payerFilter = {userId : payerId};
+                                                console.log(payerFilter);
+                                                const payerUpdate = {$inc: {balanceAmount : -amountToSend}};
+                                                console.log(payerUpdate);
+                                                Account.updateOne(payerFilter , payerUpdate)
+                                                    .then((result) => {
+                                                        console.log(result);
+                                                        // Update the Payees Account By Adding the Amount
+                                                        const payeeFilter = {userId : payeeId};
+                                                        console.log(payeeFilter);
+                                                        const payeeUpdate = {$inc : {balanceAmount : amountToSend}};
+                                                        console.log(payeeUpdate);
+                                                        return Account.updateOne(payeeFilter , payeeUpdate)
+                                                            .then((result) => {
+                                                                console.log(result);
+                                                                session.commitTransaction();
+                                                                res.status(201).send({
+                                                                    Message : "Transaction Successfull ..."
+                                                                })
+                                                            })
+                                                            .catch((error) => {
+                                                                res.status(500).send({
+                                                                    Error : `Error Adding The Amount To Payee's Account Balance : ${error}`
+                                                                });                                
+                                                            })
+                                                    })
+                                                    .catch((error) => {
+                                                        session.abortTransaction();
+                                                        session.endSession();
+                                                        res.status(500).send({
+                                                            Error : `Error Deducting The Amount From Payer's Account Balance : ${error}`
+                                                        });                                
+                                                    })
+                                            }
+                                            else{
+                                                session.abortTransaction();
+                                                session.endSession();
                                                 res.status(500).send({
-                                                    Error : `Error Adding The Amount To Payee's Account Balance : ${error}`
-                                                });                                
-                                            })
-                                    })
-                                    .catch((error) => {
-                                        res.status(500).send({
-                                            Error : `Error Deducting The Amount From Payer's Account Balance : ${error}`
-                                        });                                
-                                    })
-                            }
-                            else{
-                                res.status(500).send({
-                                    Error : `Unavailable Balance !!!`
+                                                    Error : `Unavailable Balance !!!`
+                                                })
+                                            }
+                                    }
+                                    }
                                 })
-                            }
+                                .catch((error) => {
+                                    session.abortTransaction();
+                                    session.endSession();
+                                    res.status(500).send({
+                                        Error : `Error Finding the Payer Account Balance : ${error}`
+                                    })
+                                })
                         }
                     })
                     .catch((error) => {
+                        session.abortTransaction();
+                        session.endSession();
                         res.status(500).send({
-                            Error : `Error Finding the Payer Account Balance : ${error}`
+                            Error : `Error Finding the Payer : ${error}`
                         })
                     })
-            })
-            .catch((error) => {
-                res.status(500).send({
-                    Error : `Error Finding the Payer : ${error}`
-                })
-            })
-    }
+            }
+        })
+        .catch((error) => {
+            session.abortTransaction();
+            session.endSession();
+            res.status(500).send({
+                Error : `Error Starting the Session : ${error}`
+            });                                
+        })
 }
 
 export const checkBalance = (req , res) => {
