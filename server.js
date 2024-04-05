@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import cookieparser from 'cookie-parser'
 import authRoutes from '../BACKEND/Routes/authRoutes.js';
 import transactionsRoutes from '../BACKEND/Routes/transactionsRoutes.js';
@@ -9,6 +10,7 @@ const port = 81;
 
 connectDB();
 
+app.use(cors());
 app.use(express.json());
 app.use(cookieparser());
 

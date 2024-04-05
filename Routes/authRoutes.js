@@ -7,6 +7,7 @@ import { isUserAuthorized } from '../Middlewares/authorizeUser.js';
 
 router.post('/api/v1/signup' , signupInputCheck , userSignup);
 router.post('/api/v1/login' , loginInputCheck , userLogin);
-router.get('/api/v1/users' , isUserAuthorized , getAllUsers);
+// router.get('/api/v1/users' , isUserAuthorized , getAllUsers);
+router.get('/api/v1/users' , getAllUsers);
 
 export default router;
